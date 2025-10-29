@@ -19,9 +19,3 @@ docker compose run --rm web npm run build
 # preview do build
 docker compose run --rm --service-ports web sh -lc "npm run preview -- --host 0.0.0.0 --port 4173"
 ```
-
-### Commit inicial
-```bash
-git add .
-git commit -m "chore(repo): bootstrap repository with Docker Compose, ignore files and basic README"
-```
