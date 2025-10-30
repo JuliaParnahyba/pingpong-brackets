@@ -38,7 +38,7 @@ export type MatchScore = {
   currentSetPointsB: number;
 
   // histórico simples p/ undo futuro
-  history: Array<{ a: number; b: number; whoServes: "A" | "B" }>;
+  history: Array<{ a: number; b: number; whoServes: "A" | "B"; servesLeftInTurn: number }>;
   whoServes: "A" | "B";
   servesLeftInTurn: number; // p/ "two_in_row" (2 → 1 → troca)
 };
@@ -63,6 +63,8 @@ type TournamentState = {
   setConfig: (cfg: Partial<TournamentConfig>) => void;
   setMatches: (mx: Match[]) => void;
   reset: () => void;
+  updateMatchScore: (id: string, updater: (s: MatchScore) => MatchScore) => void;
+  finishMatch: (id: string, winnerId: string) => void;
 };
 
 const defaultConfig: TournamentConfig = {
@@ -89,6 +91,24 @@ export const useTournament = create<TournamentState>((set) => ({
     })),
   setMatches: (mx) => set({ matches: mx }),
   reset: () => set({ players: [], config: defaultConfig, matches: [] }),
+  updateMatchScore: (id, updater) =>
+    set((s) => ({
+      matches: s.matches.map((m) =>
+        m.id === id
+          ? {
+              ...m,
+              status: m.status === "scheduled" ? "live" : m.status,
+              score: updater(structuredClone(m.score)),
+            }
+          : m
+      ),
+    })),
+  finishMatch: (id, winnerId) =>
+    set((s) => ({
+      matches: s.matches.map((m) =>
+        m.id === id ? { ...m, winnerId, status: "finished" } : m
+      ),
+    })),
 }));
 
 export const newPlayer = (name = ""): Player => ({ id: nanoid(), name });

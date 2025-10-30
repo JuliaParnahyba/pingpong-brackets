@@ -1,4 +1,5 @@
 import { useTournament, type Match } from "../store/tournament";
+import { Link } from "react-router-dom";
 
 export default function BracketPage() {
   const { matches } = useTournament();
@@ -33,12 +34,11 @@ export default function BracketPage() {
         <section>
           <h2 className="text-lg font-semibold mb-2">Finais</h2>
           {finals.map((m) => (
-            <div key={m.id} className="rounded-xl border p-3 bg-white/70 dark:bg-gray-900/50">
-              <div className="font-semibold">{m.tableLabel}</div>
-              <div className="text-sm mt-1">
+            <Link key={m.id} to={`/match/${m.id}`}>
+              <div className="rounded-xl border p-3 bg-white/70 dark:bg-gray-900/50 text-sm hover:bg-blue-50 dark:hover:bg-gray-800 transition">
                 {m.playerA?.name ?? "?"} vs {m.playerB?.name ?? "?"}
               </div>
-            </div>
+            </Link>
           ))}
         </section>
       )}
@@ -47,11 +47,11 @@ export default function BracketPage() {
         <section>
           <h2 className="text-lg font-semibold mb-2">Modo Treino</h2>
           {training.map((m) => (
-            <div key={m.id} className="rounded-xl border p-3 bg-white/70 dark:bg-gray-900/50">
-              <div className="text-sm">
+            <Link key={m.id} to={`/match/${m.id}`}>
+              <div className="rounded-xl border p-3 bg-white/70 dark:bg-gray-900/50 text-sm hover:bg-blue-50 dark:hover:bg-gray-800 transition">
                 {m.playerA?.name ?? "?"} vs {m.playerB?.name ?? "?"}
               </div>
-            </div>
+            </Link>
           ))}
         </section>
       )}
@@ -69,9 +69,11 @@ function renderRoundGroups(matches: Match[]) {
           <div key={r} className="space-y-2">
             <h3 className="font-semibold">Rodada {r}</h3>
             {list.map((m) => (
-              <div key={m.id} className="rounded-xl border p-3 bg-white/70 dark:bg-gray-900/50 text-sm">
-                {m.playerA?.name ?? "?"} vs {m.playerB?.name ?? "?"}
-              </div>
+              <Link key={m.id} to={`/match/${m.id}`}>
+                <div className="rounded-xl border p-3 bg-white/70 dark:bg-gray-900/50 text-sm hover:bg-blue-50 dark:hover:bg-gray-800 transition">
+                  {m.playerA?.name ?? "?"} vs {m.playerB?.name ?? "?"}
+                </div>
+              </Link>
             ))}
           </div>
         );
