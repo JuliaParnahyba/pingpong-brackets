@@ -10,11 +10,11 @@ import MatchPage from "./pages/Match";
 const router = createBrowserRouter([
   {
     path: "/",
-    element: <App />,
+    element: <App />,                                 // layout base (navbar + Outlet)
     children: [
-      { index: true, element: <ConfigPage /> },
-      { path: "bracket", element: <BracketPage /> },
-      { path: "match/:id", element: <MatchPage /> },
+      { index: true, element: <ConfigPage /> },       // rota / (home)
+      { path: "bracket", element: <BracketPage /> },  // rota /bracket
+      { path: "match/:id", element: <MatchPage /> },  // rota /match/1
     ],
   },
 ]);
