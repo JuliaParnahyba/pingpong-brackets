@@ -1,11 +1,13 @@
 import { useState, type FormEvent } from "react";
-import { newPlayer, useTournament, type TournamentConfig } from "../store/tournament";
+import { newPlayer, useTournament, type TournamentConfig, hardResetTournament } from "../store/tournament";
 import { generateRoundRobin } from "../utils/schedule";
 import { useNavigate } from "react-router-dom";
 
 export default function ConfigPage() {
-  const { players, setPlayers, config, setConfig, setMatches, reset } = useTournament();
-  const [localPlayers, setLocalPlayers] = useState(players.length ? players : [newPlayer(), newPlayer()]);
+  const { players, setPlayers, config, setConfig, setMatches } = useTournament();
+  const [localPlayers, setLocalPlayers] = useState(
+    players.length ? players : [newPlayer(), newPlayer()]
+  );
   const [localCfg, setLocalCfg] = useState<TournamentConfig>(config);
   const navigate = useNavigate();
 
@@ -35,6 +37,20 @@ export default function ConfigPage() {
     navigate("/bracket");
   };
 
+  // Reinício completo: apaga storage, zera Zustand e sincroniza o form
+  const handleRestart = () => {
+    if (!confirm("Reiniciar tudo? Isso apagará jogadoras, partidas e configurações.")) return;
+
+    hardResetTournament(); // limpa localStorage + estado global
+
+    const fresh = useTournament.getState().config; // default após o hard reset
+    setLocalPlayers([newPlayer(), newPlayer()]);
+    setLocalCfg(fresh);
+    setMatches([]); // só por garantia
+
+    navigate("/"); // volta para a Config
+  };
+
   return (
     <div className="p-4 max-w-3xl mx-auto">
       <h1 className="text-2xl font-bold mb-4">Configuração do Campeonato</h1>
@@ -45,7 +61,7 @@ export default function ConfigPage() {
           <div className="flex items-center justify-between mb-2">
             <h2 className="text-lg font-semibold">Jogadoras</h2>
             <button type="button" onClick={addPlayer}
-              className="px-3 py-1 rounded-lg bg-blue-600 text-white text-sm">+ adicionar</button>
+              className="px-3 py-1 rounded-lg bg-blue-600 text-white text-sm">+ Adicionar</button>
           </div>
 
           <div className="space-y-2">
@@ -58,7 +74,7 @@ export default function ConfigPage() {
                   className="w-full px-3 py-2 rounded-lg border bg-white/70 dark:bg-gray-900/50"
                 />
                 <button type="button" onClick={()=>removePlayer(i)}
-                  className="px-2 py-2 rounded-lg border text-sm">remover</button>
+                  className="px-2 py-2 rounded-lg border text-sm">Remover</button>
               </div>
             ))}
           </div>
@@ -111,11 +127,14 @@ export default function ConfigPage() {
                   className="w-20 px-2 py-1 rounded-lg border bg-white/70 dark:bg-gray-900/50"
                 />
               </label>
+              <span className="text-sm text-gray-600 dark:text-gray-300">
+                Vitória sempre por diferença de 2 pontos.
+              </span>
             </div>
           ) : (
             <div className="flex items-center gap-4">
               <label className="flex items-center gap-2">
-                <span>Pontos-alvo:</span>
+                <span>Pontos por partida:</span>
                 <input
                   type="number" min={5} max={50}
                   value={localCfg.targetPoints}
@@ -153,12 +172,36 @@ export default function ConfigPage() {
           </div>
         </section>
 
-        <div className="flex items-center gap-2">
-          <button type="submit" className="px-4 py-2 rounded-lg bg-green-600 text-white">
-            Gerar tabela
+        <div className="flex items-center gap-3 mt-6">
+          {/* ▶️ Gerar tabela */}
+          <button
+            type="submit"
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-white font-medium
+                      bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700
+                      shadow-md hover:shadow-lg transition-all duration-200"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+                strokeWidth={2} stroke="currentColor" className="w-5 h-5">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M4 12h16m0 0l-4-4m4 4l-4 4" />
+            </svg>
+            Gerar tabela de jogos
           </button>
-          <button type="button" onClick={reset} className="px-3 py-2 rounded-lg border">
-            Reset
+          
+          {/* 🔄 Reiniciar campeonato */}
+          <button
+            type="button"
+            onClick={handleRestart}
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-white font-medium
+                      bg-gradient-to-r from-red-500 to-pink-600 hover:from-red-600 hover:to-pink-700
+                      shadow-md hover:shadow-lg transition-all duration-200"
+            title="Limpa estado e localStorage e reinicia a aplicação"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+                strokeWidth={2} stroke="currentColor" className="w-5 h-5 animate-spin-slow">
+              <path strokeLinecap="round" strokeLinejoin="round"
+                    d="M4.5 12a7.5 7.5 0 0114.82-1.5M19.5 12a7.5 7.5 0 01-14.82 1.5" />
+            </svg>
+            Reiniciar campeonato
           </button>
         </div>
       </form>

@@ -96,7 +96,6 @@ const defaultConfig: TournamentConfig = {
   knockoutSlots: 4,
 };
 
-
 export const useTournament = create<TournamentState>()(
   persist(
     (set, _get) => ({
@@ -109,7 +108,8 @@ export const useTournament = create<TournamentState>()(
           config: { ...s.config, ...cfg, sets: { ...s.config.sets, ...(cfg.sets ?? {}) } },
         })),
       setMatches: (mx) => set({ matches: mx }),
-      reset: () => set({ players: [], config: defaultConfig, matches: [] }),
+
+      reset: () => set({ players: [], config: cloneDefault(), matches: [] }),
 
       updateMatchScore: (id, updater) =>
         set((s) => ({
@@ -169,18 +169,9 @@ export const useTournament = create<TournamentState>()(
     }),
     {
       name: "ppb-tournament-v1",
-      version: 1,
       // o storage guarda o estado PARCIAL
       storage: createJSONStorage<Partial<TournamentState>>(() => localStorage),
       partialize: (s) => ({ players: s.players, config: s.config, matches: s.matches }),
-      migrate: (persisted, from) => {
-      // futuros ajustes por versão
-      return persisted as Partial<TournamentState>;
-      },
-      onRehydrateStorage: () => (state) => {
-        // útil para debug
-        // console.log("rehydrated", state);
-      },
     }
   )
 );
@@ -189,4 +180,20 @@ export const newPlayer = (name = ""): Player => ({ id: nanoid(), name });
 
 export const clearPersistedTournament = () => {
   localStorage.removeItem("ppb-tournament-v1");
+};
+
+const cloneDefault = (): TournamentConfig => ({
+  ...defaultConfig,
+  sets: { ...defaultConfig.sets },
+});
+
+export const hardResetTournament = () => {
+  // apaga storage persistido
+  useTournament.persist?.clearStorage();
+  // zera o estado em memória
+  useTournament.setState({
+    players: [],
+    config: cloneDefault(),
+    matches: [],
+  });
 };
