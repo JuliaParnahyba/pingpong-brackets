@@ -25,6 +25,8 @@ export function buildKnockoutFromStandings(
 
   const slots = chooseSlots(n, cfg);
   const seeds = standing.slice(0, slots); // top seeds
+  const P = (id: string | undefined) => players.find(p => p.id === id);
+
 
   const findPlayer = (id: string) => players.find(p => p.id === id);
 
@@ -68,9 +70,30 @@ export function buildKnockoutFromStandings(
     return [semi1, semi2, third, final];
   }
 
-  // (Opcional) slots === 8 — Quartas: 1×8, 4×5, 3×6, 2×7 + Semis/3º/Final
-  // Mantive comentado para não alongar. Se quiser ativamos já.
-  // ...
+  if (slots === 8) {
+    // Seeds: 1..8 → emparelhamento (1×8, 4×5, 3×6, 2×7)
+    const qf1 = mk("Quartas 1", P(seeds[0]?.playerId), P(seeds[7]?.playerId));
+    const qf2 = mk("Quartas 2", P(seeds[3]?.playerId), P(seeds[4]?.playerId));
+    const qf3 = mk("Quartas 3", P(seeds[2]?.playerId), P(seeds[5]?.playerId));
+    const qf4 = mk("Quartas 4", P(seeds[1]?.playerId), P(seeds[6]?.playerId));
+
+    const sf1 = mk("Semifinal 1");
+    const sf2 = mk("Semifinal 2");
+    const third = mk("3º lugar");
+    const final = mk("Final");
+
+    // Quartas → Semis
+    qf1.meta = { winnerTo: { matchId: sf1.id, slot: "A" as SlotAB } };
+    qf2.meta = { winnerTo: { matchId: sf1.id, slot: "B" as SlotAB } };
+    qf3.meta = { winnerTo: { matchId: sf2.id, slot: "B" as SlotAB } };
+    qf4.meta = { winnerTo: { matchId: sf2.id, slot: "A" as SlotAB } };
+
+    // Semis → Final / 3º
+    sf1.meta = { winnerTo: { matchId: final.id, slot: "A" as SlotAB }, loserTo: { matchId: third.id, slot: "A" as SlotAB } };
+    sf2.meta = { winnerTo: { matchId: final.id, slot: "B" as SlotAB }, loserTo: { matchId: third.id, slot: "B" as SlotAB } };
+
+    return [qf1, qf2, qf3, qf4, sf1, sf2, third, final];
+  }
 
   return [];
 }
