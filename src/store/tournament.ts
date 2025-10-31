@@ -1,6 +1,14 @@
 import { create } from "zustand";
 import { nanoid } from "../utils/id";
 
+function fillSlot(target: Match, slot: "A" | "B", player: Player): Match {
+  return slot === "A" ? { ...target, playerA: player } : { ...target, playerB: player };
+}
+
+function patchMatch(list: Match[], id: string, patch: (m: Match) => Match): Match[] {
+  return list.map(m => (m.id === id ? patch(m) : m));
+}
+
 /** Modo de saque:
  * - "two_in_row": o saque troca a cada 2 pontos somados (regra clássica simplificada).
  * - "score_serves": quem fez o ponto saca o próximo ponto.
@@ -22,6 +30,7 @@ export type TournamentConfig = {
   targetPoints: number;          // se não usar sets
   sets: SetsConfig;              // se enabled=true, usa sets
   servingMode: ServingMode;
+  knockoutSlots: 2 | 4 | 8 | 16; // teto de vagas para a fase eliminatória
 };
 
 export type MatchPhase = "classification" | "finals" | "training";
@@ -43,6 +52,9 @@ export type MatchScore = {
   servesLeftInTurn: number; // p/ "two_in_row" (2 → 1 → troca)
 };
 
+export type SlotAB = "A" | "B";
+export type AdvanceLink = { matchId: string; slot: SlotAB };
+
 export type Match = {
   id: string;
   phase: MatchPhase;
@@ -53,6 +65,12 @@ export type Match = {
   score: MatchScore;
   winnerId?: string;
   status: "scheduled" | "live" | "finished";
+
+  // para “encadear” vencedoras/perdedoras
+  meta?: {
+    winnerTo?: AdvanceLink; // para onde vai a vencedora (match/slot)
+    loserTo?: AdvanceLink;  // para onde vai a perdedora (match/slot)
+  };
 };
 
 type TournamentState = {
@@ -74,6 +92,7 @@ const defaultConfig: TournamentConfig = {
   targetPoints: 12,
   sets: { enabled: false, bestOf: 3, pointsPerSet: 11 },
   servingMode: "two_in_row",
+  knockoutSlots: 4,
 };
 
 export const useTournament = create<TournamentState>((set) => ({
@@ -93,22 +112,47 @@ export const useTournament = create<TournamentState>((set) => ({
   reset: () => set({ players: [], config: defaultConfig, matches: [] }),
   updateMatchScore: (id, updater) =>
     set((s) => ({
-      matches: s.matches.map((m) =>
-        m.id === id
-          ? {
-              ...m,
-              status: m.status === "scheduled" ? "live" : m.status,
-              score: updater(structuredClone(m.score)),
-            }
-          : m
-      ),
-    })),
-  finishMatch: (id, winnerId) =>
-    set((s) => ({
-      matches: s.matches.map((m) =>
-        m.id === id ? { ...m, winnerId, status: "finished" } : m
-      ),
-    })),
-}));
+    matches: s.matches.map((m): Match =>
+      m.id === id
+        ? {
+            ...m,
+            status: (m.status === "scheduled" ? "live" : m.status) as Match["status"],
+            score: updater(structuredClone(m.score)),
+          }
+        : m
+    ),
+  })),
+  finishMatch: (id, winnerId) => {
+    set((s) => {
+      // 1) fecha a partida (garante Match no map + literal no status)
+      let updated = s.matches.map((m): Match =>
+        m.id === id ? { ...m, winnerId, status: "finished" as const } : m
+      );
 
+      // 2) se for semifinal, promover vencedora/perdedora
+      const semi = updated.find(
+        (m) => m.id === id && m.phase === "finals" && m.tableLabel?.startsWith("Semifinal")
+      );
+      if (semi && semi.meta) {
+        const aId = semi.playerA?.id;
+        const bId = semi.playerB?.id;
+        const loserId = winnerId === aId ? bId : aId;
+
+        const winner = s.players.find((p) => p.id === winnerId);
+        const loser  = s.players.find((p) => p.id === loserId);
+
+        if (semi.meta.winnerTo && winner) {
+          const { matchId, slot } = semi.meta.winnerTo;
+          updated = patchMatch(updated, matchId, (mm) => fillSlot(mm, slot, winner));
+        }
+        if (semi.meta.loserTo && loser) {
+          const { matchId, slot } = semi.meta.loserTo;
+          updated = patchMatch(updated, matchId, (mm) => fillSlot(mm, slot, loser));
+        }
+      }
+
+      return { matches: updated };
+    });
+  },
+}));
 export const newPlayer = (name = ""): Player => ({ id: nanoid(), name });

@@ -25,6 +25,10 @@ export default function App() {
           <NavLink to="/match/1" className={({ isActive }) => `${linkBase} ${isActive ? active : idle}`}>
             Placar (demo)
           </NavLink>
+
+          <NavLink to="/standings" className={({ isActive }) => `${linkBase} ${isActive ? active : idle}`}>
+            Classificação
+          </NavLink>
         </nav>
       </header>
 

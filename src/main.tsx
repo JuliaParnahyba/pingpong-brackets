@@ -6,6 +6,7 @@ import App from "./App";
 import ConfigPage from "./pages/Config";
 import BracketPage from "./pages/Bracket";
 import MatchPage from "./pages/Match";
+import StandingsPage from "./pages/Standings";
 
 const router = createBrowserRouter([
   {
@@ -15,6 +16,7 @@ const router = createBrowserRouter([
       { index: true, element: <ConfigPage /> },       // rota / (home)
       { path: "bracket", element: <BracketPage /> },  // rota /bracket
       { path: "match/:id", element: <MatchPage /> },  // rota /match/1
+      { path: "standings", element: <StandingsPage />},  // rota para /standings
     ],
   },
 ]);

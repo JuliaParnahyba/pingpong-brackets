@@ -1,94 +1,103 @@
 import type { Match, Player } from "../store/tournament";
 
-export type Row = {
-  player: Player;
+export type StandingRow = {
+  playerId: string;
+  name: string;
   matches: number;
-  wins: number;      // se sem sets: vitórias de jogo
-  setsWon: number;   // se com sets: soma de sets
-  setsLost: number;
-  pointsFor: number; // somatório de pontos marcados
+  wins: number;         // vitórias de partidas
+  setsFor: number;      // soma de sets vencidos (modo sets)
+  setsAgainst: number;  // soma de sets perdidos (modo sets)
+  pointsFor: number;    // soma de pontos (jogo único)
   pointsAgainst: number;
+  setDiff: number;      // setsFor - setsAgainst
+  pointDiff: number;    // pointsFor - pointsAgainst
 };
 
-export function computeStandings(players: Player[], matches: Match[], useSets: boolean): Row[] {
-  const map = new Map<string, Row>();
+function h2hWinnerId(classMatches: Match[], aId: string, bId: string): string | null {
+  const m = classMatches.find(
+    (x) =>
+      x.status === "finished" &&
+      ((x.playerA?.id === aId && x.playerB?.id === bId) ||
+       (x.playerA?.id === bId && x.playerB?.id === aId))
+  );
+  return m?.winnerId ?? null;
+}
+
+/** Computa a classificação da fase "classification".
+ *  - useSets = true → prioriza setDiff como desempate
+ *  - useSets = false → prioriza pointDiff como desempate
+ */
+export function computeStandings(
+  players: Player[],
+  matches: Match[],
+  useSets: boolean
+): StandingRow[] {
+  const rows = new Map<string, StandingRow>();
   for (const p of players) {
-    map.set(p.id, { player: p, matches: 0, wins: 0, setsWon: 0, setsLost: 0, pointsFor: 0, pointsAgainst: 0 });
+    rows.set(p.id, {
+      playerId: p.id,
+      name: p.name,
+      matches: 0,
+      wins: 0,
+      setsFor: 0,
+      setsAgainst: 0,
+      pointsFor: 0,
+      pointsAgainst: 0,
+      setDiff: 0,
+      pointDiff: 0,
+    });
   }
 
-  for (const m of matches.filter(m => m.phase === "classification" && m.status === "finished")) {
-    if (!m.playerA || !m.playerB) continue;
-    const A = map.get(m.playerA.id)!;
-    const B = map.get(m.playerB.id)!;
+  const classMatches = matches.filter((m) => m.phase === "classification" && m.status === "finished");
+
+  for (const m of classMatches) {
+    const a = m.playerA?.id; const b = m.playerB?.id;
+    if (!a || !b) continue;
+    const A = rows.get(a)!; const B = rows.get(b)!;
+
     A.matches++; B.matches++;
 
     if (useSets) {
-      A.setsWon += m.score.setsWonA;
-      A.setsLost += m.score.setsWonB;
-      B.setsWon += m.score.setsWonB;
-      B.setsLost += m.score.setsWonA;
-      if (m.winnerId === m.playerA.id) A.wins++; else if (m.winnerId === m.playerB.id) B.wins++;
-      // pontos do último set podem não estar salvos; aqui focamos em sets
+      A.setsFor += m.score.setsWonA;
+      A.setsAgainst += m.score.setsWonB;
+      B.setsFor += m.score.setsWonB;
+      B.setsAgainst += m.score.setsWonA;
     } else {
-      // jogo único por pontos
       A.pointsFor += m.score.pointsA; A.pointsAgainst += m.score.pointsB;
       B.pointsFor += m.score.pointsB; B.pointsAgainst += m.score.pointsA;
-      if (m.winnerId === m.playerA.id) A.wins++; else if (m.winnerId === m.playerB.id) B.wins++;
     }
+
+    if (m.winnerId === a) A.wins++;
+    else if (m.winnerId === b) B.wins++;
   }
 
-  const rows = Array.from(map.values());
-  // ordenação: setsWon/wins desc, saldo sets/pts, saldo geral, alfabética
-  rows.sort((r1, r2) => {
-    const primary = (useSets ? (r2.setsWon - r1.setsWon) : (r2.wins - r1.wins));
-    if (primary !== 0) return primary;
-    const sec = (useSets ? (r2.setsWon - r2.setsLost) - (r1.setsWon - r1.setsLost)
-                         : (r2.pointsFor - r2.pointsAgainst) - (r1.pointsFor - r1.pointsAgainst));
-    if (sec !== 0) return sec;
-    return r1.player.name.localeCompare(r2.player.name);
+  // difs
+  for (const r of rows.values()) {
+    r.setDiff = r.setsFor - r.setsAgainst;
+    r.pointDiff = r.pointsFor - r.pointsAgainst;
+  }
+
+  const arr = Array.from(rows.values());
+
+  // ordenação: wins desc → (useSets? setDiff : pointDiff) desc → outro diff desc → H2H → nome
+  arr.sort((r1, r2) => {
+    if (r2.wins !== r1.wins) return r2.wins - r1.wins;
+
+    const primaryDiff = useSets ? (r2.setDiff - r1.setDiff) : (r2.pointDiff - r1.pointDiff);
+    if (primaryDiff !== 0) return primaryDiff;
+
+    const secondaryDiff = useSets ? (r2.pointDiff - r1.pointDiff) : (r2.setDiff - r1.setDiff);
+    if (secondaryDiff !== 0) return secondaryDiff;
+
+    // confronto direto (se houver 1 jogo entre eles)
+    const w = h2hWinnerId(classMatches, r1.playerId, r2.playerId);
+    if (w) {
+      if (w === r1.playerId) return -1;
+      if (w === r2.playerId) return 1;
+    }
+
+    return r1.name.localeCompare(r2.name);
   });
-  return rows;
-}
 
-export function buildFinalsFromStandings(rows: Row[]): Match[] {
-  if (rows.length >= 4) {
-    const [p1, p2, p3, p4] = rows;
-    return [
-      {
-        id: crypto.randomUUID(),
-        phase: "finals",
-        round: 999,
-        tableLabel: "Final",
-        playerA: p1.player,
-        playerB: p2.player,
-        score: { pointsA:0, pointsB:0, setsWonA:0, setsWonB:0, currentSetPointsA:0, currentSetPointsB:0, history:[], whoServes:"A", servesLeftInTurn:2 },
-        status: "scheduled",
-      },
-      {
-        id: crypto.randomUUID(),
-        phase: "finals",
-        round: 1000,
-        tableLabel: "3º Lugar",
-        playerA: p3.player,
-        playerB: p4.player,
-        score: { pointsA:0, pointsB:0, setsWonA:0, setsWonB:0, currentSetPointsA:0, currentSetPointsB:0, history:[], whoServes:"A", servesLeftInTurn:2 },
-        status: "scheduled",
-      },
-    ] as Match[];
-  }
-  if (rows.length === 3) {
-    const [p1, p2] = rows;
-    return [{
-      id: crypto.randomUUID(),
-      phase: "finals",
-      round: 999,
-      tableLabel: "Final",
-      playerA: p1.player,
-      playerB: p2.player,
-      score: { pointsA:0, pointsB:0, setsWonA:0, setsWonB:0, currentSetPointsA:0, currentSetPointsB:0, history:[], whoServes:"A", servesLeftInTurn:2 },
-      status: "scheduled",
-    }] as Match[];
-  }
-  // 2 jogadoras → já tratamos como treino na geração
-  return [];
+  return arr;
 }
