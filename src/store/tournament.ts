@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { persist, createJSONStorage } from "zustand/middleware";
 import { nanoid } from "../utils/id";
 
 function fillSlot(target: Match, slot: "A" | "B", player: Player): Match {
@@ -95,64 +96,97 @@ const defaultConfig: TournamentConfig = {
   knockoutSlots: 4,
 };
 
-export const useTournament = create<TournamentState>((set) => ({
-  players: [],
-  config: defaultConfig,
-  matches: [],
-  setPlayers: (players) => set({ players }),
-  setConfig: (cfg) =>
-    set((s) => ({
-      config: {
-        ...s.config,
-        ...cfg,
-        sets: { ...s.config.sets, ...(cfg.sets ?? {}) },
-      },
-    })),
-  setMatches: (mx) => set({ matches: mx }),
-  reset: () => set({ players: [], config: defaultConfig, matches: [] }),
-  updateMatchScore: (id, updater) =>
-    set((s) => ({
-    matches: s.matches.map((m): Match =>
-      m.id === id
-        ? {
-            ...m,
-            status: (m.status === "scheduled" ? "live" : m.status) as Match["status"],
-            score: updater(structuredClone(m.score)),
+
+export const useTournament = create<TournamentState>()(
+  persist(
+    (set, _get) => ({
+      players: [],
+      config: defaultConfig,
+      matches: [],
+      setPlayers: (players) => set({ players }),
+      setConfig: (cfg) =>
+        set((s) => ({
+          config: { ...s.config, ...cfg, sets: { ...s.config.sets, ...(cfg.sets ?? {}) } },
+        })),
+      setMatches: (mx) => set({ matches: mx }),
+      reset: () => set({ players: [], config: defaultConfig, matches: [] }),
+
+      updateMatchScore: (id, updater) =>
+        set((s) => ({
+          matches: s.matches.map((m): Match =>
+            m.id === id
+              ? {
+                  ...m,
+                  status: (m.status === "scheduled" ? "live" : m.status) as Match["status"],
+                  score: updater(structuredClone(m.score)),
+                }
+              : m
+          ),
+        })),
+
+      finishMatch: (id, winnerId) => {
+        set((s) => {
+          // 1) fecha a partida (garante Match no map + literal no status)
+          let updated = s.matches.map((m): Match =>
+            m.id === id ? { ...m, winnerId, status: "finished" as const } : m
+          );
+
+          // 2) se for semifinal, promover vencedora/perdedora
+          const semi = updated.find(
+            (m) => m.id === id && m.phase === "finals" && m.tableLabel?.startsWith("Semifinal")
+          ) as Match | undefined;
+          if (semi?.meta) {
+            const aId = semi.playerA?.id;
+            const bId = semi.playerB?.id;
+            const loserId = winnerId === aId ? bId : aId;
+            const winner = s.players.find((p) => p.id === winnerId);
+            const loser  = s.players.find((p) => p.id === loserId);
+            if (semi.meta.winnerTo && winner) {
+              const { matchId, slot } = semi.meta.winnerTo;
+              updated = patchMatch(updated, matchId, (mm) => fillSlot(mm, slot, winner));
+            }
+            if (semi.meta.loserTo && loser) {
+              const { matchId, slot } = semi.meta.loserTo;
+              updated = patchMatch(updated, matchId, (mm) => fillSlot(mm, slot, loser));
+            }
           }
-        : m
-    ),
-  })),
-  finishMatch: (id, winnerId) => {
-    set((s) => {
-      // 1) fecha a partida (garante Match no map + literal no status)
-      let updated = s.matches.map((m): Match =>
-        m.id === id ? { ...m, winnerId, status: "finished" as const } : m
-      );
 
-      // 2) se for semifinal, promover vencedora/perdedora
-      const semi = updated.find(
-        (m) => m.id === id && m.phase === "finals" && m.tableLabel?.startsWith("Semifinal")
-      );
-      if (semi && semi.meta) {
-        const aId = semi.playerA?.id;
-        const bId = semi.playerB?.id;
-        const loserId = winnerId === aId ? bId : aId;
+          // também cobre Quartas → Semis (winnerTo nas QFs)
+          const qf = updated.find(
+            (m) => m.id === id && m.phase === "finals" && m.tableLabel?.startsWith("Quartas")
+          ) as Match | undefined;
+          if (qf?.meta?.winnerTo) {
+            const winner = s.players.find((p) => p.id === winnerId);
+            if (winner) {
+              const { matchId, slot } = qf.meta.winnerTo;
+              updated = patchMatch(updated, matchId, (mm) => fillSlot(mm, slot, winner));
+            }
+          }
+          
+          return { matches: updated };
+        });
+      },
+    }),
+    {
+      name: "ppb-tournament-v1",
+      version: 1,
+      // o storage guarda o estado PARCIAL
+      storage: createJSONStorage<Partial<TournamentState>>(() => localStorage),
+      partialize: (s) => ({ players: s.players, config: s.config, matches: s.matches }),
+      migrate: (persisted, from) => {
+      // futuros ajustes por versão
+      return persisted as Partial<TournamentState>;
+      },
+      onRehydrateStorage: () => (state) => {
+        // útil para debug
+        // console.log("rehydrated", state);
+      },
+    }
+  )
+);
 
-        const winner = s.players.find((p) => p.id === winnerId);
-        const loser  = s.players.find((p) => p.id === loserId);
-
-        if (semi.meta.winnerTo && winner) {
-          const { matchId, slot } = semi.meta.winnerTo;
-          updated = patchMatch(updated, matchId, (mm) => fillSlot(mm, slot, winner));
-        }
-        if (semi.meta.loserTo && loser) {
-          const { matchId, slot } = semi.meta.loserTo;
-          updated = patchMatch(updated, matchId, (mm) => fillSlot(mm, slot, loser));
-        }
-      }
-
-      return { matches: updated };
-    });
-  },
-}));
 export const newPlayer = (name = ""): Player => ({ id: nanoid(), name });
+
+export const clearPersistedTournament = () => {
+  localStorage.removeItem("ppb-tournament-v1");
+};
