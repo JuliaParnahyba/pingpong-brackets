@@ -2,6 +2,9 @@ import { useState, type FormEvent } from "react";
 import { newPlayer, useTournament, type TournamentConfig, hardResetTournament } from "../store/tournament";
 import { generateRoundRobin } from "../utils/schedule";
 import { useNavigate } from "react-router-dom";
+import { Button } from "../components/ui";
+import { IconPlay, IconRefresh } from "../components/ui/icons";
+
 
 export default function ConfigPage() {
   const { players, setPlayers, config, setConfig, setMatches } = useTournament();
@@ -60,8 +63,6 @@ export default function ConfigPage() {
         <section>
           <div className="flex items-center justify-between mb-2">
             <h2 className="text-lg font-semibold">Jogadoras</h2>
-            <button type="button" onClick={addPlayer}
-              className="px-3 py-1 rounded-lg bg-blue-600 text-white text-sm">+ Adicionar</button>
           </div>
 
           <div className="space-y-2">
@@ -71,13 +72,20 @@ export default function ConfigPage() {
                   value={p.name}
                   onChange={(e)=>updateName(i, e.target.value)}
                   placeholder={`Jogadora ${i+1}`}
-                  className="w-full px-3 py-2 rounded-lg border bg-white/70 dark:bg-gray-900/50"
+                  className=" px-3 py-2 rounded-lg border bg-white/70 dark:bg-gray-900/50"
                 />
-                <button type="button" onClick={()=>removePlayer(i)}
-                  className="px-2 py-2 rounded-lg border text-sm">Remover</button>
+                {/* Remover (cada linha) */}
+                <Button type="button" variant="outline" size="sm" onClick={() => removePlayer(i)}>
+                  Remover
+                </Button>
               </div>
             ))}
-          </div>
+
+            {/* + Adicionar */}
+            <Button type="button" size="sm" onClick={addPlayer}>
+              + Adicionar
+            </Button>
+          </div>          
         </section>
 
         {/* Modelo: jogo único ou sets */}
@@ -174,35 +182,14 @@ export default function ConfigPage() {
 
         <div className="flex items-center gap-3 mt-6">
           {/* ▶️ Gerar tabela */}
-          <button
-            type="submit"
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-white font-medium
-                      bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700
-                      shadow-md hover:shadow-lg transition-all duration-200"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
-                strokeWidth={2} stroke="currentColor" className="w-5 h-5">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M4 12h16m0 0l-4-4m4 4l-4 4" />
-            </svg>
+          <Button type="submit" variant="primary" leftIcon={IconPlay}>
             Gerar tabela de jogos
-          </button>
+          </Button>
           
           {/* 🔄 Reiniciar campeonato */}
-          <button
-            type="button"
-            onClick={handleRestart}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-white font-medium
-                      bg-gradient-to-r from-red-500 to-pink-600 hover:from-red-600 hover:to-pink-700
-                      shadow-md hover:shadow-lg transition-all duration-200"
-            title="Limpa estado e localStorage e reinicia a aplicação"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
-                strokeWidth={2} stroke="currentColor" className="w-5 h-5 animate-spin-slow">
-              <path strokeLinecap="round" strokeLinejoin="round"
-                    d="M4.5 12a7.5 7.5 0 0114.82-1.5M19.5 12a7.5 7.5 0 01-14.82 1.5" />
-            </svg>
+          <Button type="button" variant="danger" leftIcon={IconRefresh} onClick={handleRestart} title="Limpa estado e localStorage e reinicia a aplicação">
             Reiniciar campeonato
-          </button>
+          </Button>
         </div>
       </form>
     </div>
