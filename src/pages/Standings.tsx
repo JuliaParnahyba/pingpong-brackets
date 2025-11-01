@@ -1,4 +1,4 @@
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { useTournament } from "../store/tournament";
 import { computeStandings } from "../utils/standings";
 import { buildKnockoutFromStandings } from "../utils/finals";
