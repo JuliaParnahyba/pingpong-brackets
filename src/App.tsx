@@ -11,26 +11,41 @@ export default function App() {
   return (
     <div className="min-h-screen">
       <header className="sticky top-0 z-10 border-b bg-white/70 backdrop-blur dark:bg-gray-950/70">
-        <nav className="max-w-6xl mx-auto flex items-center gap-2 p-3">
-          <div className="font-bold mr-4">🏓 PingPong Brackets</div>
+        <nav className="max-w-6xl mx-auto flex flex-wrap items-center justify-between gap-2 p-2 sm:p-3">
+          <div className="font-bold mr-2 text-sm sm:text-base">🏓 PingPong Brackets</div>
 
-          <NavLink to="/" end className={({ isActive }) => `${linkBase} ${isActive ? active : idle}`}>
-            Config
-          </NavLink>
+          <div className="flex flex-wrap items-center gap-1 sm:gap-2">
+            <NavLink
+              to="/"
+              end
+              className={({ isActive }) =>
+                `${linkBase} ${isActive ? active : idle} tap-target`
+              }
+            >
+              Config
+            </NavLink>
 
-          <NavLink to="/bracket" className={({ isActive }) => `${linkBase} ${isActive ? active : idle}`}>
-            Chaves
-          </NavLink>
+            <NavLink
+              to="/bracket"
+              className={({ isActive }) =>
+                `${linkBase} ${isActive ? active : idle} tap-target`
+              }
+            >
+              Chaves
+            </NavLink>
 
-          <NavLink to="/match/1" className={({ isActive }) => `${linkBase} ${isActive ? active : idle}`}>
-            Placar (demo)
-          </NavLink>
-
-          <NavLink to="/standings" className={({ isActive }) => `${linkBase} ${isActive ? active : idle}`}>
-            Classificação
-          </NavLink>
+            <NavLink
+              to="/standings"
+              className={({ isActive }) =>
+                `${linkBase} ${isActive ? active : idle} tap-target`
+              }
+            >
+              Classificação
+            </NavLink>
+          </div>
         </nav>
       </header>
+
 
       <main className="py-6">
         <Outlet />

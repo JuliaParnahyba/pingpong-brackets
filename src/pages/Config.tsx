@@ -5,7 +5,6 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "../components/ui";
 import { IconPlay, IconRefresh } from "../components/ui/icons";
 
-
 export default function ConfigPage() {
   const { players, setPlayers, config, setConfig, setMatches } = useTournament();
   const [localPlayers, setLocalPlayers] = useState(
@@ -40,157 +39,193 @@ export default function ConfigPage() {
     navigate("/bracket");
   };
 
-  // Reinício completo: apaga storage, zera Zustand e sincroniza o form
   const handleRestart = () => {
     if (!confirm("Reiniciar tudo? Isso apagará jogadoras, partidas e configurações.")) return;
-
-    hardResetTournament(); // limpa localStorage + estado global
-
-    const fresh = useTournament.getState().config; // default após o hard reset
+    hardResetTournament();
+    const fresh = useTournament.getState().config;
     setLocalPlayers([newPlayer(), newPlayer()]);
     setLocalCfg(fresh);
-    setMatches([]); // só por garantia
-
-    navigate("/"); // volta para a Config
+    setMatches([]);
+    navigate("/");
   };
 
   return (
-    <div className="p-4 max-w-3xl mx-auto">
+    <div className="p-4 max-w-6xl mx-auto">
       <h1 className="text-2xl font-bold mb-4">Configuração do Campeonato</h1>
 
-      <form onSubmit={onSubmit} className="space-y-6">
-        {/* Jogadoras */}
+      {/* MOBILE: 1 col | DESKTOP: 2 cols (form à esquerda, regras à direita) */}
+      <form onSubmit={onSubmit} className="grid gap-6 md:grid-cols-2">
+        {/* ===== COLUNA ESQUERDA — Jogadoras ===== */}
         <section>
-          <div className="flex items-center justify-between mb-2">
-            <h2 className="text-lg font-semibold">Jogadoras</h2>
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-lg font-semibold">Jogadores</h2>
           </div>
 
           <div className="space-y-2">
             {localPlayers.map((p, i) => (
-              <div key={p.id} className="flex items-center gap-2">
+              <div key={p.id} className="relative inline-block w-full md:w-[90%] xl:w-[85%]">
                 <input
                   value={p.name}
-                  onChange={(e)=>updateName(i, e.target.value)}
-                  placeholder={`Jogadora ${i+1}`}
-                  className=" px-3 py-2 rounded-lg border bg-white/70 dark:bg-gray-900/50"
+                  onChange={(e) => updateName(i, e.target.value)}
+                  placeholder={`Jogadora ${i + 1}`}
+                  className="w-full px-3 pr-9 py-2 rounded-lg border bg-white/70 dark:bg-gray-900/50"
                 />
-                {/* Remover (cada linha) */}
-                <Button type="button" variant="outline" size="sm" onClick={() => removePlayer(i)}>
-                  Remover
-                </Button>
+                {/* botão “×” alinhado verticalmente e preso à borda do input */}
+                <button
+                  type="button"
+                  onClick={() => removePlayer(i)}
+                  aria-label={`Remover ${p.name || `Jogadora ${i + 1}`}`}
+                  className="absolute right-3 top-1/3 -translate-y-1/2 text-lg leading-none
+                            text-gray-400 hover:text-red-500 focus:outline-none transition-colors duration-100"
+                >
+                  ×
+                </button>
               </div>
             ))}
 
-            {/* + Adicionar */}
-            <Button type="button" size="sm" onClick={addPlayer}>
-              + Adicionar
+            <Button type="button" size="xs" onClick={addPlayer}>
+              + Adicionar jogador
             </Button>
-          </div>          
-        </section>
 
-        {/* Modelo: jogo único ou sets */}
-        <section className="space-y-3">
-          <h2 className="text-lg font-semibold">Modelo da Partida</h2>
-
-          <div className="flex items-center gap-6">
-            <label className="flex items-center gap-2">
-              <input
-                type="radio"
-                checked={!localCfg.sets.enabled}
-                onChange={()=>setLocalCfg(c=>({ ...c, sets: { ...c.sets, enabled: false } }))}
-              />
-              <span>Jogo único</span>
-            </label>
-
-            <label className="flex items-center gap-2">
-              <input
-                type="radio"
-                checked={localCfg.sets.enabled}
-                onChange={()=>setLocalCfg(c=>({ ...c, sets: { ...c.sets, enabled: true } }))}
-              />
-              <span>Sets (best of)</span>
-            </label>
-          </div>
-
-          {localCfg.sets.enabled ? (
-            <div className="flex items-center gap-4">
-              <label className="flex items-center gap-2">
-                <span>Best of:</span>
-                <select
-                  value={localCfg.sets.bestOf}
-                  onChange={(e)=>setLocalCfg(c=>({ ...c, sets: { ...c.sets, bestOf: Number(e.target.value) as 3|5 } }))}
-                  className="px-2 py-1 rounded-lg border bg-white/70 dark:bg-gray-900/50"
-                >
-                  <option value={3}>3</option>
-                  <option value={5}>5</option>
-                </select>
-              </label>
-
-              <label className="flex items-center gap-2">
-                <span>Pontos por set:</span>
-                <input
-                  type="number" min={5} max={21}
-                  value={localCfg.sets.pointsPerSet}
-                  onChange={(e)=>setLocalCfg(c=>({ ...c, sets: { ...c.sets, pointsPerSet: Number(e.target.value) || 11 } }))}
-                  className="w-20 px-2 py-1 rounded-lg border bg-white/70 dark:bg-gray-900/50"
-                />
-              </label>
-              <span className="text-sm text-gray-600 dark:text-gray-300">
-                Vitória sempre por diferença de 2 pontos.
-              </span>
-            </div>
-          ) : (
-            <div className="flex items-center gap-4">
-              <label className="flex items-center gap-2">
-                <span>Pontos por partida:</span>
-                <input
-                  type="number" min={5} max={50}
-                  value={localCfg.targetPoints}
-                  onChange={(e)=>setLocalCfg(c=>({ ...c, targetPoints: Number(e.target.value) || 12 }))}
-                  className="w-24 px-2 py-1 rounded-lg border bg-white/70 dark:bg-gray-900/50"
-                />
-              </label>
-              <span className="text-sm text-gray-600 dark:text-gray-300">
-                Vitória sempre por diferença de 2 pontos.
-              </span>
-            </div>
-          )}
-        </section>
-
-        {/* Modo de saque */}
-        <section className="space-y-3">
-          <h2 className="text-lg font-semibold">Saque</h2>
-          <div className="flex items-center gap-6">
-            <label className="flex items-center gap-2">
-              <input
-                type="radio"
-                checked={localCfg.servingMode === "two_in_row"}
-                onChange={()=>setLocalCfg(c=>({ ...c, servingMode: "two_in_row" }))}
-              />
-              <span>2 saques seguidos</span>
-            </label>
-            <label className="flex items-center gap-2">
-              <input
-                type="radio"
-                checked={localCfg.servingMode === "score_serves"}
-                onChange={()=>setLocalCfg(c=>({ ...c, servingMode: "score_serves" }))}
-              />
-              <span>Quem pontua saca</span>
-            </label>
           </div>
         </section>
 
-        <div className="flex items-center gap-3 mt-6">
-          {/* ▶️ Gerar tabela */}
-          <Button type="submit" variant="primary" leftIcon={IconPlay}>
-            Gerar tabela de jogos
-          </Button>
-          
-          {/* 🔄 Reiniciar campeonato */}
-          <Button type="button" variant="danger" leftIcon={IconRefresh} onClick={handleRestart} title="Limpa estado e localStorage e reinicia a aplicação">
-            Reiniciar campeonato
-          </Button>
-        </div>
+        {/* ===== COLUNA DIREITA — Regras ===== */}
+        <section className="space-y-6">
+          {/* Modelo */}
+          <div className="space-y-3">
+            <h2 className="text-lg font-semibold">Modelo da Partida</h2>
+
+            <div className="flex items-center gap-6">
+              <label className="flex items-center gap-2">
+                <input
+                  type="radio"
+                  checked={!localCfg.sets.enabled}
+                  onChange={() =>
+                    setLocalCfg((c) => ({ ...c, sets: { ...c.sets, enabled: false } }))
+                  }
+                />
+                <span>Jogo único</span>
+              </label>
+
+              <label className="flex items-center gap-2">
+                <input
+                  type="radio"
+                  checked={localCfg.sets.enabled}
+                  onChange={() =>
+                    setLocalCfg((c) => ({ ...c, sets: { ...c.sets, enabled: true } }))
+                  }
+                />
+                <span>Sets (best of)</span>
+              </label>
+            </div>
+
+            {localCfg.sets.enabled ? (
+              <div className="flex flex-wrap items-center gap-4">
+                <label className="flex items-center gap-2">
+                  <span>Best of:</span>
+                  <select
+                    value={localCfg.sets.bestOf}
+                    onChange={(e) =>
+                      setLocalCfg((c) => ({
+                        ...c,
+                        sets: { ...c.sets, bestOf: Number(e.target.value) as 3 | 5 },
+                      }))
+                    }
+                    className="px-2 py-1 rounded-lg border bg-white/70 dark:bg-gray-900/50"
+                  >
+                    <option value={3}>3</option>
+                    <option value={5}>5</option>
+                  </select>
+                </label>
+
+                <label className="flex items-center gap-2">
+                  <span>Pontos por set:</span>
+                  <input
+                    type="number"
+                    min={5}
+                    max={21}
+                    value={localCfg.sets.pointsPerSet}
+                    onChange={(e) =>
+                      setLocalCfg((c) => ({
+                        ...c,
+                        sets: {
+                          ...c.sets,
+                          pointsPerSet: Number(e.target.value) || 11,
+                        },
+                      }))
+                    }
+                    className="w-20 px-2 py-1 rounded-lg border bg-white/70 dark:bg-gray-900/50"
+                  />
+                </label>
+                <span className="text-sm text-gray-600 dark:text-gray-300">
+                  Vitória sempre por diferença de 2 pontos.
+                </span>
+              </div>
+            ) : (
+              <div className="flex flex-wrap items-center gap-4">
+                <label className="flex items-center gap-2">
+                  <span>Pontos por partida:</span>
+                  <input
+                    type="number"
+                    min={5}
+                    max={50}
+                    value={localCfg.targetPoints}
+                    onChange={(e) =>
+                      setLocalCfg((c) => ({
+                        ...c,
+                        targetPoints: Number(e.target.value) || 12,
+                      }))
+                    }
+                    className="w-24 px-2 py-1 rounded-lg border bg-white/70 dark:bg-gray-900/50"
+                  />
+                </label>
+                <span className="text-sm text-gray-600 dark:text-gray-300">
+                  Vitória sempre por diferença de 2 pontos.
+                </span>
+              </div>
+            )}
+          </div>
+
+          {/* Saque */}
+          <div className="space-y-3">
+            <h2 className="text-lg font-semibold">Saque</h2>
+            <div className="flex items-center gap-6">
+              <label className="flex items-center gap-2">
+                <input
+                  type="radio"
+                  checked={localCfg.servingMode === "two_in_row"}
+                  onChange={() => setLocalCfg((c) => ({ ...c, servingMode: "two_in_row" }))}
+                />
+                <span>2 saques seguidos</span>
+              </label>
+              <label className="flex items-center gap-2">
+                <input
+                  type="radio"
+                  checked={localCfg.servingMode === "score_serves"}
+                  onChange={() => setLocalCfg((c) => ({ ...c, servingMode: "score_serves" }))}
+                />
+                <span>Quem pontua saca</span>
+              </label>
+            </div>
+          </div>
+
+          {/* Ações – ficam nesta coluna à direita (desktop) */}
+          <div className="flex items-center gap-3 pt-2">
+            <Button type="submit" variant="primary" leftIcon={IconPlay}>
+              Gerar tabela de jogos
+            </Button>
+            <Button
+              type="button"
+              variant="danger"
+              leftIcon={IconRefresh}
+              onClick={handleRestart}
+              title="Limpa estado e localStorage e reinicia a aplicação"
+            >
+              Reiniciar campeonato
+            </Button>
+          </div>
+        </section>
       </form>
     </div>
   );

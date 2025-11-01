@@ -151,64 +151,111 @@ export default function MatchPage() {
 
   return (
     <div className="p-4 max-w-3xl mx-auto space-y-4">
-      <div className="flex items-center justify-between">
-        <Link to="/bracket" className="text-blue-600 underline">← Voltar</Link>
-        <div className="text-sm opacity-70">Status: {status}</div>
-      </div>
-
       <h1 className="text-2xl font-bold">Placar ao Vivo</h1>
+      <div className="text-sm opacity-70">Status: {status}</div>
       <div className="rounded-xl border p-4 bg-white/70 dark:bg-gray-900/50">
         {!config.sets.enabled ? (
-          <div className="grid grid-cols-3 items-center gap-4">
-            <div className={`text-right p-3 rounded-xl ${serveRingA}`}>
-              <div className="text-lg font-semibold">{aName}</div>
-              <button disabled={done} onClick={()=>handlePoint("A")} className={btnServe(isAserver)}>+1</button>
+          /* --- JOGO ÚNICO --- */
+          <div className="grid grid-cols-2 sm:grid-cols-3 items-center gap-3 sm:gap-4">
+            {/* A */}
+            <div className={`order-2 sm:order-1 text-center sm:text-right p-2 sm:p-3 rounded-xl ${serveRingA}`}>
+              <div className="text-base sm:text-lg font-semibold">{aName}</div>
+              <button
+                disabled={done}
+                onClick={() => handlePoint("A")}
+                className={btnServe(isAserver) + " w-full sm:w-auto mt-2 tap-target"}
+              >
+                +1
+              </button>
             </div>
 
-            <div className="text-center">
-              <div className="text-5xl font-bold tabular-nums">{score.pointsA} : {score.pointsB}</div>
-              <div className="mt-3">{serverBadge}</div>
-              <button disabled={done || score.history.length === 0} onClick={handleUndo}
-                className="mt-3 px-2 py-1 rounded-lg border text-sm disabled:opacity-40">Undo</button>
+            {/* Centro – no mobile ocupa 2 colunas; no desktop fica no meio */}
+            <div className="order-1 sm:order-2 col-span-2 sm:col-span-1 text-center">
+              <div className="text-5xl sm:text-6xl font-bold tabular-nums">
+                {score.pointsA} x {score.pointsB}
+              </div>
+              <div className="mt-3 flex justify-center">{serverBadge}</div>
+              <button
+                disabled={done || score.history.length === 0}
+                onClick={handleUndo}
+                className="mt-3 px-1 py-1 text-sm disabled:opacity-40 tap-target"
+              >
+                Desfazer Ponto
+              </button>
             </div>
 
-            <div className={`text-left p-3 rounded-xl ${serveRingB}`}>
-              <div className="text-lg font-semibold">{bName}</div>
-              <button disabled={done} onClick={()=>handlePoint("B")} className={btnServe(!isAserver)}>+1</button>
+            {/* B */}
+            <div className={`order-3 text-center sm:text-left p-2 sm:p-3 rounded-xl ${serveRingB}`}>
+              <div className="text-base sm:text-lg font-semibold">{bName}</div>
+              <button
+                disabled={done}
+                onClick={() => handlePoint("B")}
+                className={btnServe(!isAserver) + " w-full sm:w-auto mt-2 tap-target"}
+              >
+                +1
+              </button>
             </div>
           </div>
         ) : (
-          <div className="space-y-3">
-            <div className="flex items-center justify-center gap-6">
-              <div className="text-center">
-                <div className="text-xs opacity-70">Sets</div>
-                <div className="text-3xl font-bold tabular-nums">{score.setsWonA}</div>
-              </div>
-              <div className="text-center">
-                <div className="text-xs opacity-70">Sets</div>
-                <div className="text-3xl font-bold tabular-nums">{score.setsWonB}</div>
-              </div>
+          /* --- SETS: linha dos botões/placar do set atual --- */
+          <div className="grid grid-cols-2 sm:grid-cols-3 items-center gap-3 sm:gap-4">
+            {/* A */}
+            <div className={`order-2 sm:order-1 text-center sm:text-right p-2 sm:p-3 rounded-xl ${serveRingA}`}>
+              <div className="text-base sm:text-lg font-semibold">{aName}</div>
+              <button
+                disabled={done}
+                onClick={() => handlePoint("A")}
+                className={btnServe(isAserver) + " w-full sm:w-auto mt-2 tap-target"}
+              >
+                +1
+              </button>
             </div>
 
-            <div className="grid grid-cols-3 items-center gap-4">
-              <div className={`text-right p-3 rounded-xl ${serveRingA}`}>
-                <div className="text-lg font-semibold">{aName}</div>
-                <button disabled={done} onClick={()=>handlePoint("A")} className={btnServe(isAserver)}>+1</button>
+            {/* Centro – ocupa 2 colunas no mobile; 1 no desktop */}
+            <div className="order-1 sm:order-2 col-span-2 sm:col-span-1 text-center">
+              {/* placar do set atual */}
+              <div className="text-5xl sm:text-6xl font-bold tabular-nums">
+                {score.currentSetPointsA} x {score.currentSetPointsB}
               </div>
 
-              <div className="text-center">
-                <div className="text-5xl font-bold tabular-nums">
-                  {score.currentSetPointsA} : {score.currentSetPointsB}
+              {/* NOVO: mini placar de sets (A x B) */}
+              <div
+                aria-label={`Sets: ${aName} ${score.setsWonA} – ${bName} ${score.setsWonB}`}
+                className="mt-1 inline-flex items-center gap-5 rounded-full border border-blue-600/30 bg-blue-600/10 px-3 py-0.2 text-blue-700 dark:text-blue-200"
+              >
+                <div className="flex items-center gap-1">
+                  <span className="text-lg font-bold tabular-nums">{score.setsWonA}</span>
                 </div>
-                <div className="mt-3">{serverBadge}</div>
-                <button disabled={done || score.history.length === 0} onClick={handleUndo}
-                  className="mt-3 px-2 py-1 rounded-lg border text-sm disabled:opacity-40">Undo</button>
+                <span className="opacity-40">•</span>
+                <div className="flex items-center gap-1">
+                  <span className="text-lg font-bold tabular-nums">{score.setsWonB}</span>
+                </div>
               </div>
 
-              <div className={`text-left p-3 rounded-xl ${serveRingB}`}>
-                <div className="text-lg font-semibold">{bName}</div>
-                <button disabled={done} onClick={()=>handlePoint("B")} className={btnServe(!isAserver)}>+1</button>
-              </div>
+              {/* badge de saque */}
+              <div className="mt-3 flex justify-center">{serverBadge}</div>
+
+              {/* botão Undo */}
+              <button
+                disabled={done || score.history.length === 0}
+                onClick={handleUndo}
+                className="mt-3 px-1 py-1 text-xs disabled:opacity-40 tap-target"
+              >
+                Desfazer Ponto
+              </button>
+            </div>
+
+
+            {/* B */}
+            <div className={`order-3 text-center sm:text-left p-2 sm:p-3 rounded-xl ${serveRingB}`}>
+              <div className="text-base sm:text-lg font-semibold">{bName}</div>
+              <button
+                disabled={done}
+                onClick={() => handlePoint("B")}
+                className={btnServe(!isAserver) + " w-full sm:w-auto mt-2 tap-target"}
+              >
+                +1
+              </button>
             </div>
           </div>
         )}

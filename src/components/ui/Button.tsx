@@ -4,7 +4,7 @@ import { Link } from "react-router-dom";
 import type { LinkProps } from "react-router-dom";
 
 type Variant = "primary" | "danger" | "outline" | "ghost";
-type Size = "md" | "sm";
+type Size = "md" | "sm" | "xs";
 
 type CommonProps = {
   variant?: Variant;
@@ -32,9 +32,11 @@ const variants: Record<Variant, string> = {
     "px-3 py-1.5 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800",
 };
 
+
 const sizes: Record<Size, string> = {
-  md: "",
-  sm: "text-sm px-3 py-1.5",
+  md: "px-4 py-2",
+  sm: "text-sm px-3 py-1.5", // altura bem reduzida (~22px)
+  xs: "text-sm px-1.5 py-[5px] leading-tight",
 };
 
 export const Button = Object.assign(
