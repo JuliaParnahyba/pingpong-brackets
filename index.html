@@ -1,6 +1,14 @@
 <!doctype html>
 <html lang="en">
   <head>
+    <script>
+      (function() {
+        const u = new URL(location.href);
+        const p = u.searchParams.get('p');
+        if (p) history.replaceState(null, '', '/pingpong-brackets/' + p);
+      })();
+    </script>
+
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/public/ping-pong.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
