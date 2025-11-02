@@ -8,18 +8,21 @@ import BracketPage from "./pages/Bracket";
 import MatchPage from "./pages/Match";
 import StandingsPage from "./pages/Standings";
 
-const router = createBrowserRouter([
-  {
-    path: "/",
-    element: <App />,                                 // layout base (navbar + Outlet)
-    children: [
-      { index: true, element: <ConfigPage /> },       // rota / (home)
-      { path: "bracket", element: <BracketPage /> },  // rota /bracket
-      { path: "match/:id", element: <MatchPage /> },  // rota /match/1
-      { path: "standings", element: <StandingsPage />},  // rota para /standings
-    ],
-  },
-]);
+const router = createBrowserRouter(
+  [
+    {
+      path: "/",
+      element: <App />,                                 // layout base (navbar + Outlet)
+      children: [
+        { index: true, element: <ConfigPage /> },       // rota / (home)
+        { path: "bracket", element: <BracketPage /> },  // rota /bracket
+        { path: "match/:id", element: <MatchPage /> },  // rota /match/1
+        { path: "standings", element: <StandingsPage />},  // rota para /standings
+      ],
+    },
+  ],
+  { basename: '/pingpong-brackets' }
+);
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
