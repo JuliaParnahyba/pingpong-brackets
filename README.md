@@ -89,7 +89,7 @@ Quer ajudar a melhorar o projeto? Ótimo! 💪
 
 ## 🧑‍💻 Autoria e colaboração
 
-Projeto mantido por [Julia Parnaíba](https://github.com/JuliaParnahyba) e aberto a contribuições da comunidade!
+Projeto mantido por [Julia Parnahyba](https://github.com/JuliaParnahyba) e aberto a contribuições da comunidade!
 
 <br>
 
